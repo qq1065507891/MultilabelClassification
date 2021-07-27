@@ -8,7 +8,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
 
 from process import read_file, cut_train_dev, process_text, pickle_data, load_data, get_time_idf, build_generator
-from process import training_curve
+from process import training_curve, process_text_dataset, name_to_dict
 from config import config
 from model import MultillabelClassification
 
@@ -40,21 +40,26 @@ def train_model(config):
     else:
         df = read_file(config['ori_train_path'])
         train_data, dev_data, train_label, dev_label = cut_train_dev(df)
-        train = process_text(train_data, train_label)
+        # train = process_text(train_data, train_label)
+        #
+        # dev = process_text(dev_data, dev_label)
 
-        dev = process_text(dev_data, dev_label)
+        train = process_text_dataset(train_data, train_label)
 
+        dev = process_text_dataset(dev_data, dev_label)
         all_data = {
             'train': train,
             'dev': dev
         }
         pickle_data(all_data, config)
 
-    train_iter = build_generator(config, train)
-    dev_iter = build_generator(config, dev)
+    # train_iter = build_generator(config, train)
+    # dev_iter = build_generator(config, dev)
+    train_iter = tf.data.Dataset.from_tensor_slices(train).map(name_to_dict).shuffle(buffer_size=100).batch(config['batch_size'])
+    dev_iter = tf.data.Dataset.from_tensor_slices(dev).map(name_to_dict).batch(config['batch_size'])
 
     end_time = get_time_idf(stat_time)
-    print('数据加载完成, 用时:{}, 训练数据:{}, 验证数据{}'.format(end_time, len(train_iter), len(dev_iter)))
+    print('数据加载完成, 用时:{}, 训练数据:{}, 验证数据{}'.format(end_time, len(list(train_iter)), len(list(dev_iter))))
 
     if os.path.exists(config['model_file']):
         model = load_model(config)
@@ -64,7 +69,7 @@ def train_model(config):
         print('模型初始化')
 
     cal_backs = [
-        # EarlyStopping(monitor='val_binary_accuracy', patience=10, verbose=1, mode='max'),
+        EarlyStopping(monitor='val_binary_accuracy', patience=10, verbose=1, mode='max'),
         ModelCheckpoint(config['model_file'], monitor='val_binary_accuracy', verbose=1,
                         save_weights_only=True, save_best_only=True, mode='max',
                         period=1)
@@ -74,9 +79,9 @@ def train_model(config):
     history = model.fit(
         train_iter,
         epochs=config['epochs'],
-        steps_per_epoch=len(train_iter) // config['batch_size'],
+        steps_per_epoch=len(list(train_iter)) // config['batch_size'],
         validation_data=dev_iter,
-        validation_steps=len(dev_iter) // config['batch_size'],
+        validation_steps=len(list(dev_iter)) // config['batch_size'],
         callbacks=cal_backs,
         verbose=1
     )
