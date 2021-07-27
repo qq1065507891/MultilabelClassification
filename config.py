@@ -4,6 +4,7 @@ config = {
     'train_path': './data/train_new.csv',
     'dev_path': './data/dev.csv',
     'all_data_pkl': './data/all_data_pkl.pkl',
+    'test_pkl': './data/test.pkl',
     'dict_path': './bert_tf/vocab.txt',
     'model_file': './model/bert_multilabel.h5',
     'config_path': './bert_tf/bert_config.json',
