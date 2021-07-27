@@ -7,8 +7,9 @@ os.environ['TF_KERAS'] = '1'
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
 
-from process import read_file, cut_train_dev, process_text, pickle_data, load_data, get_time_idf, build_generator
-from process import training_curve, process_text_dataset, name_to_dict
+from dataset import build_generator
+from utils import read_file, cut_train_dev, pickle_data, load_data, get_time_idf, name_to_dict, training_curve
+from process import process_text_dataset, process_text
 from config import config
 from model import MultillabelClassification
 
@@ -55,7 +56,8 @@ def train_model(config):
 
     # train_iter = build_generator(config, train)
     # dev_iter = build_generator(config, dev)
-    train_iter = tf.data.Dataset.from_tensor_slices(train).map(name_to_dict).shuffle(buffer_size=100).batch(config['batch_size'])
+    train_iter = tf.data.Dataset.from_tensor_slices(train).map(name_to_dict).shuffle(buffer_size=100)
+    train_iter = train_iter.repeat().batch(config['batch_size'])
     dev_iter = tf.data.Dataset.from_tensor_slices(dev).map(name_to_dict).batch(config['batch_size'])
 
     end_time = get_time_idf(stat_time)
@@ -94,12 +96,12 @@ def train_model(config):
 
 
 if __name__ == '__main__':
-    history = train_model(config)
-    # test = r"Bye! Don't look, come or think of comming back! Tosser."
+    # history = train_model(config)
+    test_data = read_file(config['test_path'])
     # text = process_text(test, train=False, generator=False)
-    # model = load_model(config)
-    # # text_iter = build_generator(config, text)
-    # pre = model.predict(text)
-    # print(pre)
-    # pre = [1 if p > 0.4 else 0 for p in pre[0]]
-    # print(pre)
+    text = process_text_dataset(test_data, train=False)
+    model = load_model(config)
+    pre = model.predict(text)
+
+    pre = [1 if p > 0.5 else 0 for p in pre[0]]
+
