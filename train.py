@@ -34,7 +34,7 @@ def train_model(config):
     print('开始加载数据')
     stat_time = time.time()
     if os.path.exists(config['all_data_pkl']):
-        all_data = load_data(config)
+        all_data = load_data(config['all_data_pkl'])
         train = all_data['train']
         dev = all_data['dev']
     else:
@@ -51,7 +51,7 @@ def train_model(config):
             'train': train,
             'dev': dev
         }
-        pickle_data(all_data, config)
+        pickle_data(all_data, config['all_data_pkl'])
 
     # train_iter = build_generator(config, train)
     # dev_iter = build_generator(config, dev)
