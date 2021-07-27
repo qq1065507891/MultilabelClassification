@@ -12,6 +12,6 @@ config = {
     'maxlen': 128,
     'batch_size': 16,
     'class_num': 6,
-    'epochs': 1,
+    'epochs': 1000,
     'learning_rate': 1e-6
 }
