@@ -43,6 +43,41 @@ def process_text(texts, labels=None, train=True, generator=True):
     return contents
 
 
+def process_text_dataset(texts, labels=None, train=True, generator=True):
+    tokenizer = Tokenizer(config['dict_path'], do_lower_case=True)
+
+    if not train and not generator:
+        token_ids, segment_ids = tokenizer.encode(texts, maxlen=config['maxlen'])
+        token_ids_pad = sequence_padding([token_ids])
+        segment_ids_pad = sequence_padding([segment_ids])
+        content = (token_ids_pad, segment_ids_pad)
+    elif not train and generator:
+        contents = []
+        for text in texts.values:
+            token_ids, segment_ids = tokenizer.encode(text, maxlen=config['maxlen'])
+            contents.append((token_ids, segment_ids))
+        token_ids_pad = sequence_padding([item[0] for item in contents])
+        segment_ids_pad = sequence_padding([item[1] for item in contents])
+        content = (token_ids_pad, segment_ids_pad)
+    else:
+        contents = []
+        for text, label in zip(texts.values, labels.values):
+            token_ids, segment_ids = tokenizer.encode(text, maxlen=config['maxlen'])
+            contents.append((token_ids, segment_ids, label.tolist()))
+        token_ids_pad = sequence_padding([item[0] for item in contents])
+        segment_ids_pad = sequence_padding([item[1] for item in contents])
+        all_label_pad = sequence_padding([item[2] for item in contents])
+        content = (token_ids_pad, segment_ids_pad, all_label_pad)
+    return content
+
+
+def name_to_dict(token_ids, segment_ids, labels):
+    return {
+        'Input-Token': token_ids,
+        'Input-Segment': segment_ids
+    }, labels
+
+
 def pickle_data(contents, config):
     if not os.path.exists(config['all_data_pkl']):
         with open(config['all_data_pkl'], 'wb') as f:
@@ -68,6 +103,7 @@ def training_curve(loss, acc, val_loss=None, val_acc=None):
         ax[1].plot(val_acc, color='g', label='Validation Accuracy')
     ax[1].legend(loc='best', shadow=True)
     ax[1].grid(True)
+    plt.show()
 
 
 def get_time_idf(start_time):
