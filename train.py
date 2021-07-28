@@ -2,16 +2,17 @@ import os
 import time
 import tensorflow as tf
 
-os.environ['TF_KERAS'] = '1'
-
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
+from sklearn.metrics import classification_report, confusion_matrix
 
+from models import MultillabelClassification
+from config import config
 from dataset import build_generator
 from utils import read_file, cut_train_dev, pickle_data, load_data, get_time_idf, name_to_dict, training_curve
 from process import process_text_dataset, process_text
-from config import config
-from model import MultillabelClassification
+
+os.environ['TF_KERAS'] = '1'
 
 
 def init_model(config):
@@ -57,8 +58,8 @@ def train_model(config):
     # train_iter = build_generator(config, train)
     # dev_iter = build_generator(config, dev)
     train_iter = tf.data.Dataset.from_tensor_slices(train).map(name_to_dict).shuffle(buffer_size=100)
-    train_iter = train_iter.repeat().batch(config['batch_size'])
-    dev_iter = tf.data.Dataset.from_tensor_slices(dev).map(name_to_dict).batch(config['batch_size'])
+    train_iter = train_iter.batch(config['batch_size']).repeat(config['epochs'])
+    dev_iter = tf.data.Dataset.from_tensor_slices(dev).map(name_to_dict).batch(config['batch_size']).repeat(config['epochs'])
 
     end_time = get_time_idf(stat_time)
     print('数据加载完成, 用时:{}, 训练数据:{}, 验证数据{}'.format(end_time, len(list(train_iter)), len(list(dev_iter))))
@@ -71,10 +72,9 @@ def train_model(config):
         print('模型初始化')
 
     cal_backs = [
-        EarlyStopping(monitor='val_binary_accuracy', patience=10, verbose=1, mode='max'),
+        EarlyStopping(monitor='val_binary_accuracy', patience=2, verbose=1, mode='max'),
         ModelCheckpoint(config['model_file'], monitor='val_binary_accuracy', verbose=1,
-                        save_weights_only=True, save_best_only=True, mode='max',
-                        period=1)
+                        save_weights_only=True, save_best_only=True, mode='max')
     ]
     print('开始训练')
     start_time = time.time()
@@ -96,12 +96,4 @@ def train_model(config):
 
 
 if __name__ == '__main__':
-    # history = train_model(config)
-    test_data = read_file(config['test_path'])
-    # text = process_text(test, train=False, generator=False)
-    text = process_text_dataset(test_data, train=False)
-    model = load_model(config)
-    pre = model.predict(text)
-
-    pre = [1 if p > 0.5 else 0 for p in pre[0]]
-
+    history = train_model(config)
