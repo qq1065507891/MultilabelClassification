@@ -58,8 +58,8 @@ def train_model(config):
     # train_iter = build_generator(config, train)
     # dev_iter = build_generator(config, dev)
     train_iter = tf.data.Dataset.from_tensor_slices(train).map(name_to_dict).shuffle(buffer_size=100)
-    train_iter = train_iter.batch(config['batch_size']).repeat(config['epochs'])
-    dev_iter = tf.data.Dataset.from_tensor_slices(dev).map(name_to_dict).batch(config['batch_size']).repeat(config['epochs'])
+    train_iter = train_iter.batch(config['batch_size'])
+    dev_iter = tf.data.Dataset.from_tensor_slices(dev).map(name_to_dict).batch(config['batch_size'])
 
     end_time = get_time_idf(stat_time)
     print('数据加载完成, 用时:{}, 训练数据:{}, 验证数据{}'.format(end_time, len(list(train_iter)), len(list(dev_iter))))
@@ -81,9 +81,7 @@ def train_model(config):
     history = model.fit(
         train_iter,
         epochs=config['epochs'],
-        steps_per_epoch=len(list(train_iter)) // config['batch_size'],
         validation_data=dev_iter,
-        validation_steps=len(list(dev_iter)) // config['batch_size'],
         callbacks=cal_backs,
         verbose=1
     )
